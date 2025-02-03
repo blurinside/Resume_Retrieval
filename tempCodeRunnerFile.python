@@ -1,0 +1,49 @@
+# app.py
+
+import streamlit as st
+from langchain.llms import HuggingFaceHub
+from langchain.vectorstores import FAISS
+from langchain.embeddings import SentenceTransformerEmbeddings
+from langchain.text_splitter import CharacterTextSplitter
+import os
+
+# Set up Hugging Face Hub API key (required for deployment on Hugging Face Spaces)
+os.environ["HUGGINGFACEHUB_API_TOKEN"] = "your_hugging_face_api_token"
+
+# Streamlit App Interface
+st.title("Resume Query Retrieval System")
+st.write("A query-based resume information retrieval application, deployed via a Streamlit app on Hugging Face Spaces.")
+
+# Upload resume file
+uploaded_resume = st.file_uploader("Upload Resume Document", type=["txt", "pdf", "docx"])
+
+if uploaded_resume is not None:
+    # Read and process resume content
+    resume_text = uploaded_resume.read().decode("utf-8")  # Adjust as necessary based on file type
+    st.write("Resume Uploaded Successfully!")
+    
+    # Initialize embeddings and model
+    model_name = "sentence-transformers/all-MiniLM-L6-v2"  # Use your specific model if different
+    embeddings = SentenceTransformerEmbeddings(model_name=model_name)
+    text_splitter = CharacterTextSplitter(chunk_size=512)
+
+    # Split resume into chunks for processing
+    resume_chunks = text_splitter.split_text(resume_text)
+    faiss_index = FAISS.from_texts(resume_chunks, embeddings)
+
+    # User query input
+    query = st.text_input("Enter a query to search within the resume:")
+    
+    if query:
+        # Perform similarity search on the resume
+        responses = faiss_index.similarity_search(query, k=3)  # Modify k as necessary for your application
+        st.write("Results:")
+        for idx, result in enumerate(responses):
+            st.write(f"{idx+1}. {result.page_content}")
+
+# Instructions for Hugging Face deployment
+st.write("To deploy on Hugging Face Spaces, ensure you have a `requirements.txt` file with necessary packages.")
+
+# Display instructions for further deployment steps
+st.write("1. Make sure you have set up the Hugging Face API key for accessing models if needed.")
+st.write("2. Include any additional instructions or setup steps in this section.")
